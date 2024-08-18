@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    container_name: miet-tv-bot
+    restart: unless-stopped
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    volumes:
+      - users_data:/app/data
+    environment:
+      NOTION_CAMERAS_DATABASE_ID: $NOTION_CAMERAS_DATABASE_ID
+      NOTION_API_KEY: $NOTION_API_KEY
+      PORT: $PORT
+      TELEGRAM_BOT_TOKEN: $TELEGRAM_BOT_TOKEN
+      ADMIN_IDS: $ADMIN_IDS
+
+volumes:
+  users_data:
+    external: true
