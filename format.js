@@ -33,7 +33,8 @@ function bookingTextTemplate(message, entry) {
   message += `<b>Бронь:</b> <u>${entry["Бронь"]}</u>\n`;
   message += `<b>Дата/Время:</b> <u>${formattingDate(entry["Дата/Время"].start, entry["Дата/Время"].end)}</u>\n`;
 
-  message += formatEquipmentList("Камеры/Объективы", entry["Камеры/Объективы"]);
+  message += formatEquipmentList("Объективы", entry["Объективы"])
+  message += formatEquipmentList("Камеры", entry["Камеры"]);
   message += formatEquipmentList("Штативы/Стойки", entry["Штативы/Стойки"]);
   message += formatEquipmentList("Звук", entry["Звук"]);
   message += formatEquipmentList("Свет", entry["Свет"]);

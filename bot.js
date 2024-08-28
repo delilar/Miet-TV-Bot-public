@@ -16,6 +16,7 @@ let chatIds = [];
 const calendar = new Calendar(bot, {
     date_format: 'YYYY-MM-DD',
     language: 'ru',
+    start_week_day: 1,
     bot_api: 'telegraf'
 })
 
@@ -58,6 +59,7 @@ async function sendUpdates() {
     }
 }
 
+const adminIdsArray = process.env.ADMIN_IDS.split(',').map(adminId => parseInt(adminId))
 const adminInitialKeyboard = Markup.keyboard([['Актуальные бронирования'], ['Уведомление для пользователей'], ['Найти бронирования по дате']]).resize().oneTime();
 
 bot.start(async (ctx) => {
@@ -68,8 +70,6 @@ bot.start(async (ctx) => {
 
     // Определение клавиатуры для администратора и обычного пользователя
     let keyboard;
-    const adminIdsArray = process.env.ADMIN_IDS.split(',').map(adminId => parseInt(adminId))
-
     if (adminIdsArray.includes(CHAT_ID)) {
         keyboard = adminInitialKeyboard //клавиатура для администраторов
     } else {
@@ -102,7 +102,7 @@ async function actualBookings(ctx) {
             await ctx.reply(actualBookingFormatting(actualBookings), {parse_mode: 'HTML'});
         }
     } catch (error) {
-        console.log(error)
+        //console.log(error)
         // В случае ошибки удаляем сообщение и отправляем сообщение об ошибке
         await ctx.deleteMessage(searchingMessage.message_id);
         await ctx.reply('Произошла ошибка при получении актуальных бронирований. Пожалуйста, попробуйте позже.');
@@ -110,8 +110,8 @@ async function actualBookings(ctx) {
 }
 
 // Вызов вывода актуальных бронирований при выборе в меню пункта 'Актуальные бронирования'
-bot.hears('Актуальные бронирования', (ctx) => {
-    actualBookings(ctx);
+bot.hears('Актуальные бронирования', async (ctx) => {
+    await actualBookings(ctx);
 });
 
 
@@ -121,7 +121,6 @@ bot.command('actual_bookings', async (ctx) => {
 
 
 function notificationsSending(text, ctx) {
-    const adminIdsArray = process.env.ADMIN_IDS.split(',').map(adminId => parseInt(adminId))
     const CHAT_ID = ctx.update.message.chat.id;
     text = `<b>Уведомления от администратора:</b>\n\n${text}`
     chatIds.forEach(({ chatId }) => {
@@ -131,22 +130,27 @@ function notificationsSending(text, ctx) {
 
 //Вызов функции для отправки сообщений всем пользователям
 bot.hears('Уведомление для пользователей', async (ctx) => {
+    const waitingForMessage = true;
+    const CHAT_ID = ctx.update.message.chat.id;
+
     await ctx.reply('Следующее сообщение, отправленное боту будет разосланно всем пользователям бота. Нажмите кнопку <u>Отмена</u>, чтобы отменить рассылку.', {parse_mode: 'HTML', reply_markup: Markup.removeKeyboard()})
 
     const cancelKeyboard = Markup.keyboard([['Отмена']]).resize().oneTime(); // Создаем клавиатуру для отмены рассылки
     await ctx.reply('Введите сообщение:', cancelKeyboard);
 
-    bot.on('text', (ctx) => {
-        const userMessage = ctx.update.message.text;
-
-        // Проверяем, не нажал ли пользователь кнопку "Отмена"
-        if (userMessage === 'Отмена') {
-            ctx.reply('Рассылка отменена.', adminInitialKeyboard);
-        } else {
-            notificationsSending(userMessage, ctx); // Выполняем рассылку
-            ctx.reply('Сообщение отправлено.', adminInitialKeyboard); // Отправляем уведомление об успешной рассылке
-        }
-    });
+    if (waitingForMessage && adminIdsArray.includes(CHAT_ID)){
+        bot.on('text', (ctx) => {
+            const userMessage = ctx.update.message.text;
+    
+            // Проверяем, не нажал ли пользователь кнопку "Отмена"
+            if (userMessage === 'Отмена') {
+                ctx.reply('Рассылка отменена.', adminInitialKeyboard);
+            } else {
+                notificationsSending(userMessage, ctx); // Выполняем рассылку
+                ctx.reply('Сообщение отправлено.', adminInitialKeyboard); // Отправляем уведомление об успешной рассылке
+            }
+        });
+    }
 })
 
 

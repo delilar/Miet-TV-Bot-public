@@ -29,6 +29,7 @@ async function getCurrentBookings() {
       return false;
     }
 
+
     const title = entry.properties['Бронь'].title[0]?.plain_text;
     const dateProperty = entry.properties['Дата/Время']?.date;
     const endDateStr = dateProperty ? dateProperty.end : null;
@@ -87,7 +88,7 @@ async function getBookingsByDate(firstDate, secondDate) {
 
     // Проверка наличия валидной даты
     if (isNaN(startDateStr) || isNaN(endDateStr)) {
-      console.log('Invalid Date encountered:', startDateStr, endDateStr);
+      //console.log('Invalid Date encountered:', startDateStr, endDateStr);
       return false;
     }
 
@@ -118,7 +119,7 @@ async function checkForUpdates() {
   if (!lastCheckedTime) {
     lastCheckedTime = new Date();
     lastCheckedTime = roundToNearestMinuteDown(lastCheckedTime);
-    console.log("Initial data loaded.");
+    //console.log("Initial data loaded.");
   } else {
     const newEntries = currentEntries.filter(entry => {
       const entryEditedTime = new Date(entry.last_edited_time);
