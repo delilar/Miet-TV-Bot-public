@@ -61,4 +61,20 @@ function actualBookingFormatting(actualEntry) {
   return message;
 }
 
-export { formattingBookingData, actualBookingFormatting };
+function freeEquipmentFormating(freeEquipmentEntry) {
+  let message = "<u><b>Свободная техника:</b></u>\n\n";
+  const keys = Object.keys(freeEquipmentEntry);
+
+  Object.values(freeEquipmentEntry).forEach((entry, entryIndex) => {
+    message += `<b>${keys[entryIndex]}:</b>\n`
+    entry.forEach((equipment) => {
+      message += `\t\t${equipment}\n`
+    })
+  })
+
+  message += "\n<i><b>Ниже указаны съемки на которые забронированна техника</b></i>\n\n"
+
+  return message;
+}
+
+export { formattingBookingData, actualBookingFormatting, freeEquipmentFormating };

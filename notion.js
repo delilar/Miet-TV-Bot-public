@@ -10,11 +10,83 @@ let lastCheckedTime = null;
 //Функция для получения данных из БД
 async function getDataBase() {
   const response = await notion.databases.query({
-    database_id: process.env.NOTION_CAMERAS_DATABASE_ID
+    database_id: process.env.NOTION_BOOKING_DATABASE_ID
   });
 
   return response.results;
 }
+
+// Функция для получения заголовков БД и самих БД с оборудованием
+async function getCamerasPages() {
+  const response = await notion.blocks.children.list({
+    block_id: process.env.NOTION_CAMERAS_DATABASE_ID
+  });
+
+  const equipmentIds = response.results.map(block => {
+    const { id } = block;
+    return id;
+  });
+
+  // Получаем названия для каждой таблицы
+  const titles = await Promise.all(equipmentIds.map(async (equipmentId) => {
+    const titleResponse = await notion.databases.retrieve({
+      database_id: equipmentId
+    })
+
+    return titleResponse.title[0].plain_text.trim()
+  }));
+
+  // Используем return внутри функции map
+  const equipmentContent = await Promise.all(equipmentIds.map(async (equipmentId) => {
+    const equipmentData = await notion.databases.query({
+      database_id: equipmentId
+    });
+    return equipmentData.results; // Возвращаем данные
+  }));
+
+  return { titles, equipmentContent };
+}
+
+
+
+// Функция создающая JSON с данными - свободной для бронирования техникой, для уточнения бронирований,
+//кроме свободной техники передаются данные о броинровании по датам
+async function getFreeEquipmentByDate(firstDate, secondDate) {
+  const { titles, equipmentContent } = await getCamerasPages();
+
+  let allEquipmentInType = []
+  let allEquipmentByTypes = {}
+
+  equipmentContent.map((equipmentType, equipmentTypeId) => {
+    allEquipmentInType = equipmentType.map((equipment) => {
+      const { name } = equipment.properties;
+      return name.rich_text[0].plain_text;
+    })
+
+    allEquipmentByTypes[titles[equipmentTypeId]] = allEquipmentInType;
+  })
+
+  
+  const bookingsByDate = await getBookingsByDate(firstDate, secondDate);
+  let freeEquipment = {};
+
+  titles.forEach(key => {
+    freeEquipment[key] = [...allEquipmentByTypes[key]];
+  })
+
+  bookingsByDate.forEach((bookingsInType) => {
+    titles.forEach((key) => {
+      bookingsInType[key].forEach((bookingAtDate) => {
+        if(freeEquipment[key].includes(bookingAtDate)) {
+          freeEquipment[key].splice(freeEquipment[key].indexOf(bookingAtDate), 1);
+        }
+      })
+    })
+  })
+
+  return { freeEquipment, bookingsByDate, titles }
+}
+
 
 
 // Функция для получения актуальных бронирований
@@ -62,8 +134,6 @@ async function getCurrentBookings() {
 }
 
 
-
-// Функция для получения бронирований по дате
 // Функция для получения бронирований по дате
 async function getBookingsByDate(firstDate, secondDate) {
   const entries = await getDataBase();
@@ -203,4 +273,4 @@ async function formSortedBooking(entryProperties) {
 checkForUpdates();
 
 
-export { checkForUpdates, getCurrentBookings, getBookingsByDate }
+export { checkForUpdates, getCurrentBookings, getBookingsByDate, getFreeEquipmentByDate }
